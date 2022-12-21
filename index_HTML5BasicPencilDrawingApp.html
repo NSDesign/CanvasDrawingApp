@@ -1,0 +1,58 @@
+<html>
+<head>
+  <title>HTML5 Basic Pencil Drawing App</title>
+  <script src="https://unpkg.com/konva/konva.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  <script>
+    var stage = new Konva.Stage({
+      container: 'container',
+      width: window.innerWidth,
+      height: window.innerHeight
+    });
+
+    var layer = new Konva.Layer();
+    stage.add(layer);
+
+    var isDrawing = false;
+    var lastPointerPosition;
+    var strokeWidth = 5;
+    var strokeColor = 'black';
+
+    stage.on('mousedown touchstart', function(e) {
+      isDrawing = true;
+      lastPointerPosition = stage.getPointerPosition();
+    });
+
+    stage.on('mouseup touchend', function() {
+      isDrawing = false;
+    });
+
+    stage.on('mousemove touchmove', function() {
+      if (!isDrawing) {
+        return;
+      }
+
+      var pos = stage.getPointerPosition();
+      var line = new Konva.Line({
+        stroke: strokeColor,
+        strokeWidth: strokeWidth,
+        globalCompositeOperation: 'source-over',
+        points: [lastPointerPosition.x, lastPointerPosition.y, pos.x, pos.y]
+      });
+      layer.add(line);
+      layer.batchDraw();
+      lastPointerPosition = pos;
+    });
+  </script>
+</body>
+</html>

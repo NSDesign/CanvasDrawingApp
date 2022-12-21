@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Drawing App</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #f0f0f0;
+        border: 1px solid black;
+      }
+
+    </style>
+  </head>
+  <body>
+    <canvas id="drawing-canvas" width="800" height="600"></canvas>
+    <div>
+      <button id="pencil-button">Pencil</button>
+      <button id="eraser-button">Eraser</button>
+    </div>
+    <script src="https://unpkg.com/konva/konva.min.js"></script>
+    <script>
+      const stage = new Konva.Stage({
+        container: 'drawing-canvas',
+        width: 800,
+        height: 600
+        
+      });
+      
+
+
+      console.log(stage);
+
+
+      const layer = new Konva.Layer();
+      stage.add(layer);
+
+      console.log(`Konva Stage: ${layer}`);
+
+      let tool = 'pencil';
+
+      console.log(`Current tool: ${tool}`);
+
+      stage.on('mousedown', e => {
+        console.log('mousedown event triggered');
+
+        if (tool === 'pencil') {
+          console.log('Pencil tool selected');
+          // create a new line on mouse down
+          const line = new Konva.Line({
+            stroke: 'black',
+            strokeWidth: 2,
+            points: [e.evt.offsetX, e.evt.offsetY]
+          });
+          layer.add(line);
+          
+
+          stage.on('mousemove', e => {
+            console.log('mousemove event triggered');
+            // add a new point to the line on mouse move
+            line.points([...line.points(), e.evt.offsetX, e.evt.offsetY]);
+            layer.batchDraw();
+          });
+        } else if (tool === 'eraser') {
+          console.log('Eraser tool selected');
+          // create an eraser circle on mouse down
+          const eraser = new Konva.Circle({
+            x: e.evt.offsetX,
+            y: e.evt.offsetY,
+            radius: 10,
+            fill: 'white'
+          });
+          layer.add(eraser);
+          layer.batchDraw();
+
+          stage.on('mousemove', e => {
+            // update the position of the eraser circle on mouse move
+            eraser.setAttrs({
+              x: e.evt.offsetX,
+              y: e.evt.offsetY
+            });
+            layer.batchDraw();
+          });
+        }
+      });
+
+      stage.on('mouseup', () => {
+        stage.off('mousemove');
+      });
+
+      document.getElementById('pencil-button').addEventListener('click', () => {
+        tool = 'pencil';
+        console.log(`Tool changed to ${tool}`);
+      });
+
+      document.getElementById('eraser-button').addEventListener('click', () => {
+        tool = 'eraser';
+        console.log(`Tool changed to ${tool}`);
+      });
+    </script>
+  </body>
+</html>

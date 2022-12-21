@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Canvas Drawing App</title>
+  </head>
+  <body>
+    <canvas id="drawingCanvas" width="500" height="500"></canvas>
+    <br>
+    <label for="brushSize">Brush size:</label>
+    <select id="brushSize">
+      <option value="1">1</option>
+      <option value="3">3</option>
+      <option value="5">5</option>
+      <option value="10">10</option>
+    </select>
+    <br>
+    <label for="brushColor">Brush color:</label>
+    <input type="color" id="brushColor" value="#000000">
+    <br>
+    <button id="eraseButton">Erase</button>
+    <button id="clearButton">Clear canvas</button>
+    <button id="saveButton">Save image</button>
+    <script>
+      const canvas = document.getElementById('drawingCanvas');
+      const ctx = canvas.getContext('2d');
+      let isDrawing = false;
+      let lastX = 0;
+      let lastY = 0;
+      let isErasing = false;
+
+      canvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        [lastX, lastY] = [e.offsetX, e.offsetY];
+      });
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (!isDrawing) return;
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(e.offsetX, e.offsetY);
+        ctx.stroke();
+        [lastX, lastY] = [e.offsetX, e.offsetY];
+      });
+
+      canvas.addEventListener('mouseup', () => isDrawing = false);
+      canvas.addEventListener('mouseout', () => isDrawing = false);
+
+      document.getElementById('eraseButton').addEventListener('click', () => {
+        isErasing = true;
+        ctx.globalCompositeOperation = 'destination-out';
+      });
+
+      canvas.addEventListener('mouseup', () => {
+        if (isErasing) {
+          isErasing = false;
+          ctx.globalCompositeOperation = 'source-over';
+        }
+      });
+
+      document.getElementById('clearButton').addEventListener('click', () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      });
+
+      document.getElementById('saveButton').addEventListener('click', () => {
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL();
+        a.download = 'my-drawing.png';
+        a.click();
+      });
+
+      const brushSizeSelect = document.getElementById('brushSize');
+      const brushColorInput = document.getElementById('brushColor');
+
+      brushSizeSelect.addEventListener('change', (e) => {
+        ctx.lineWidth = e.target.value;
+      });
+
+      brushColorInput.addEventListener('change', (e) => {
+        ctx.strokeStyle = e.target.value;
+      });
+    </script>
+  </body>
+</html>
+

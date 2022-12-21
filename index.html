@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Canvas Drawing App + Additional Functions</title>
+  <style>
+    
+    .grid {
+      /* Show grid on canvas */
+      background-image: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 10px,
+      #00eaff 10px,
+      #cccccc 10px
+      );
+    } 
+
+    .snap {
+      /* Snap to grid on mousemove */
+      transform: translate(10px, 10px);
+      transition: transform 0.1s ease-out;
+    }
+
+  </style>
+</head>
+<body>
+  <canvas id="drawingCanvas" width="500" height="500"></canvas>
+  <br>
+  <label for="brushSize">Brush size:</label>
+  <select id="brushSize">
+    <option value="1">1</option>
+    <option value="3">3</option>
+    <option value="5">5</option>
+    <option value="10">10</option>
+  </select>
+  <br>
+  <label for="brushColor">Brush color:</label>
+  <input type="color" id="brushColor" value="#000000">
+  <br>
+  <button id="undoButton">Undo</button>
+  <button id="redoButton">Redo</button>
+  <button id="eraseButton">Erase</button>
+  <button id="clearButton">Clear canvas</button>
+  <button id="saveButton">Save image</button>
+  <br>
+  <label for="pencilMode">Pencil mode:</label>
+  <input type="checkbox" id="pencilMode">
+  <br>
+  <label for="brushShape">Brush shape:</label>
+  <select id="brushShape">
+    <option value="circle">Circle</option>
+    <option value="square">Square</option>
+    <option value="custom">Custom</option>
+  </select>
+  <br>
+  <label for="customBrushShape">Custom brush shape:</label>
+  <input type="text" id="customBrushShape" value="M0,0 L10,5 L5,10 L15,15 L20,5 L25,10 L30,0 Z">
+  <br>
+  <button id="textButton">Add text</button>
+  <button id="rectangleButton">Add rectangle</button>
+  <button id="circleButton">Add circle</button>
+  <button id="triangleButton">Add triangle</button>
+  <button id="imageButton">Insert image</button>
+  <input type="file" id="imageInput" accept="image/*">
+  <button id="snapshotButton">Take snapshot</button>
+  <br>
+  <button id="addLayerButton">Add layer</button>
+  <button id="removeLayerButton">Remove layer</button>
+  <br>
+  <label for="zoomLevel">Zoom level:</label>
+  <input type="range" id="zoomLevel" min="1" max="4" value="1">
+  <br>
+  <label for="showGrid">Show grid:</label>
+  <input type="checkbox" id="showGrid">
+  <br>
+  <label for="snapToGrid">Snap to grid:</label>
+  <input type="checkbox" id="snapToGrid">
+
+
+
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const canvas = document.getElementById('drawingCanvas');
+      const ctx = canvas.getContext('2d');
+      let isDrawing = false;
+      let lastX = 0;
+      let lastY = 0;
+      let isErasing = false;
+      let undoStack = [];
+      let redoStack = [];
+
+      // Add event listeners to stop drawing
+      
+      canvas.addEventListener('mouseup', () => isDrawing = false);
+      canvas.addEventListener('mouseout', () => isDrawing = false);
+
+      // Add event listeners for drawing
+      canvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        [lastX, lastY] = [e.offsetX, e.offsetY];
+      });
+    
+      canvas.addEventListener('mousemove', (e) => {
+        try{
+          if (!isDrawing) return;
+            ctx.beginPath();
+          if (document.getElementById('pencilMode').checked) {
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.lineWidth = document.getElementById('brushSize').value;
+            ctx.strokeStyle = document.getElementById('brushColor').value;
+            ctx.stroke();
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+          } else {
+            drawLine(lastX, lastY, e.offsetX, e.offsetY);
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+          }
+        }catch(error){
+          console.log(error);
+        }
+
+      });
+
+      canvas.addEventListener('mouseup', () => isDrawing = false);
+      canvas.addEventListener('mouseout', () => isDrawing = false);
+
+      // Define drawLine function
+      function drawLine(x1, y1, x2, y2) {
+        ctx.lineWidth = document.getElementById('brushSize').value;
+        ctx.strokeStyle = document.getElementById('brushColor').value;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      };
+
+      // Add event listeners for undo and redo buttons
+      document.getElementById('undoButton').addEventListener('click', () => {
+        if (undoStack.length > 0) {
+          redoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+          ctx.putImageData(undoStack.pop(), 0, 0);
+        }
+      });
+      document.getElementById('redoButton').addEventListener('click', () => {
+        if (redoStack.length > 0) {
+          undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+          ctx.putImageData(redoStack.pop(), 0, 0);
+        }
+      });
+
+      // Add event listener for erase button
+      document.getElementById('eraseButton').addEventListener('click', () => {
+        isErasing = !isErasing;
+        if (isErasing) {
+          ctx.globalCompositeOperation = 'destination-out';
+          document.getElementById('eraseButton').textContent = 'Draw';
+        } else {
+          ctx.globalCompositeOperation = 'source-over';
+          document.getElementById('eraseButton').textContent = 'Erase';
+        }
+      });
+
+      // Add event listener for clear button
+      document.getElementById('clearButton').addEventListener('click', () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      });
+
+      // Add event listener for save button
+      document.getElementById('saveButton').addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = 'image.png';
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+
+      // Add event listener for text button
+      document.getElementById('textButton').addEventListener('click', () => {
+        const text = window.prompt('Enter text:');
+        if (text) {
+          ctx.font = '48px sans-serif';
+          ctx.fillStyle = document.getElementById('brushColor').value;
+          ctx.fillText(text, 10, 50);
+        }
+      });
+
+      // Add event listeners for rectangle and circle buttons
+      document.getElementById('rectangleButton').addEventListener('click', () => {
+        const x = window.prompt('Enter x coordinate:');
+        const y = window.prompt('Enter y coordinate:');
+        const width = window.prompt('Enter width:');
+        const height = window.prompt('Enter height:');
+        if (x && y && width && height) {
+          ctx.lineWidth = document.getElementById('brushSize').value;
+          ctx.strokeStyle = document.getElementById('brushColor').value;
+          ctx.strokeRect(x, y, width, height);
+        }
+      });
+      document.getElementById('circleButton').addEventListener('click', () => {
+        const x = window.prompt('Enter x coordinate of center:');
+        const y = window.prompt('Enter y coordinate of center:');
+        const radius = window.prompt('Enter radius:');
+        if (x && y && radius) {
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.lineWidth = document.getElementById('brushSize').value;
+          ctx.strokeStyle = document.getElementById('brushColor').value;
+          ctx.stroke();
+        }
+      });
+
+      // Add event listener for triangle button
+      document.getElementById('triangleButton').addEventListener('click', () => {
+        const x1 = window.prompt('Enter x coordinate of first point:');
+        const y1 = window.prompt('Enter y coordinate of first point:');
+        const x2 = window.prompt('Enter x coordinate of second point:');
+        const y2 = window.prompt('Enter y coordinate of second point:');
+        const x3 = window.prompt('Enter x coordinate of third point:');
+        const y3 = window.prompt('Enter y coordinate of third point:');
+        if (x1 && y1 && x2 && y2 && x3 && y3) {
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.lineTo(x3, y3);
+          ctx.closePath();
+          ctx.lineWidth = document.getElementById('brushSize').value;
+          ctx.strokeStyle = document.getElementById('brushColor').value;
+          ctx.stroke();
+        }
+      });
+
+      // Add event listeners for image button and input
+      document.getElementById('imageButton').addEventListener('click', () => {
+        document.getElementById('imageInput').click();
+      });
+      document.getElementById('imageInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.addEventListener('load', () => {
+            const image = new Image();
+            image.addEventListener('load', () => {
+              const x = window.prompt('Enter x coordinate:');
+              const y = window.prompt('Enter y coordinate:');
+              if (x && y) {
+                ctx.drawImage(image, x, y);
+              }
+            });
+            image.src = reader.result;
+          });
+          reader.readAsDataURL(file);
+        }
+      });
+
+      // Add event listener for snapshot button
+      document.getElementById('snapshotButton').addEventListener('click', () => {
+        const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        undoStack.push(snapshot);
+        redoStack = [];
+      });
+
+      // Add event listeners for layer buttons
+      document.getElementById('addLayerButton').addEventListener('click', () => {
+        const layer = document.createElement('canvas');
+        layer.width = canvas.width;
+        layer.height = canvas.height;
+        layer.style.position = 'absolute';
+        layer.style.top = '0';
+        layer.style.left = '0';
+        document.body.appendChild(layer);
+      });
+      document.getElementById('removeLayerButton').addEventListener('click', () => {
+        const layers = document.querySelectorAll('canvas');
+        if (layers.length > 1) {
+          layers[layers.length - 1].remove();
+        }
+      });
+
+      // Add event listener for zoom level input
+      document.getElementById('zoomLevel').addEventListener('input', () => {
+        const zoom = document.getElementById('zoomLevel').value;
+        canvas.style.transform = `scale(${zoom})`;
+      });
+
+      // Add event listener for show grid input
+      document.getElementById('showGrid').addEventListener('input', () => {
+        if (document.getElementById('showGrid').checked) {
+          canvas.classList.add('grid');
+        } else {
+          canvas.classList.remove('grid');
+        }
+      });
+
+      // Add event listener for snap to grid input
+      document.getElementById('snapToGrid').addEventListener('input', () => {
+        if (document.getElementById('snapToGrid').checked) {
+          canvas.classList.add('snap');
+        } else {
+          canvas.classList.remove('snap');
+        }
+      });
+
+      // Add event listener for the color picker 
+      // NEEDS REFACTORING
+      /*
+      brushColorInput.addEventListener('input', (event) => {
+        const brushColor = event.target.value;
+      // Update brush color in your code  
+      });
+      */
+
+    });
+</script>
